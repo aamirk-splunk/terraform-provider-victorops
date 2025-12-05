@@ -1,0 +1,264 @@
+package victorops
+
+import (
+	"encoding/json"
+	"fmt"
+)
+
+// TeamOncallSchedule represents a team's on-call schedule
+type TeamOncallSchedule struct {
+	Team      TeamInfo         `json:"team,omitempty"`
+	Schedules []OncallSchedule `json:"schedules,omitempty"`
+}
+
+// TeamInfo represents team information in schedule responses
+type TeamInfo struct {
+	Name string `json:"name,omitempty"`
+	Slug string `json:"slug,omitempty"`
+}
+
+// OncallSchedule represents an on-call schedule entry
+type OncallSchedule struct {
+	OncallUser string         `json:"oncallUser,omitempty"`
+	OncallType string         `json:"oncallType,omitempty"`
+	Rolls      []ScheduleRoll `json:"rolls,omitempty"`
+}
+
+// ScheduleRoll represents a roll in the schedule
+type ScheduleRoll struct {
+	Start      int64  `json:"start,omitempty"`
+	End        int64  `json:"end,omitempty"`
+	OnCallUser string `json:"onCallUser,omitempty"`
+	OnCallType string `json:"onCallType,omitempty"`
+	IsRoll     bool   `json:"isRoll,omitempty"`
+}
+
+// Rotation represents a rotation in a team
+type Rotation struct {
+	Label        string          `json:"label,omitempty"`
+	TotalMembers int             `json:"totalMembers,omitempty"`
+	Shifts       []RotationShift `json:"shifts,omitempty"`
+}
+
+// RotationShift represents a shift in a rotation
+type RotationShift struct {
+	Label    string   `json:"label,omitempty"`
+	Duration int      `json:"duration,omitempty"`
+	Members  []string `json:"members,omitempty"`
+}
+
+// TeamAdmin represents a team admin
+type TeamAdmin struct {
+	Username string `json:"username,omitempty"`
+}
+
+// RoutingKeyInfo represents a routing key with target info
+type RoutingKeyInfo struct {
+	RoutingKey string             `json:"routingKey,omitempty"`
+	Targets    []RoutingKeyTarget `json:"targets,omitempty"`
+	IsDefault  bool               `json:"isDefault,omitempty"`
+}
+
+// RoutingKeyTarget represents a target for a routing key
+type RoutingKeyTarget struct {
+	PolicySlug string `json:"policySlug,omitempty"`
+	PolicyName string `json:"policyName,omitempty"`
+}
+
+// UserInfo represents user information
+type UserInfo struct {
+	Username  string `json:"username,omitempty"`
+	FirstName string `json:"firstName,omitempty"`
+	LastName  string `json:"lastName,omitempty"`
+	Email     string `json:"email,omitempty"`
+	Admin     bool   `json:"admin,omitempty"`
+}
+
+// UserDevice represents a user device
+type UserDevice struct {
+	ExtID      string `json:"extId,omitempty"`
+	DeviceType string `json:"deviceType,omitempty"`
+	Label      string `json:"label,omitempty"`
+}
+
+// GetTeamOncallSchedule gets a team's on-call schedule
+func (c *APIClient) GetTeamOncallSchedule(teamID string, daysForward, daysSkip int) (*TeamOncallSchedule, error) {
+	path := fmt.Sprintf("/api-public/v2/team/%s/oncall/schedule?daysForward=%d&daysSkip=%d", teamID, daysForward, daysSkip)
+	respBody, statusCode, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if statusCode == 404 {
+		return nil, nil
+	}
+
+	if statusCode != 200 {
+		return nil, fmt.Errorf("API error (%d): %s", statusCode, string(respBody))
+	}
+
+	var schedule TeamOncallSchedule
+	if err := json.Unmarshal(respBody, &schedule); err != nil {
+		return nil, err
+	}
+
+	return &schedule, nil
+}
+
+// GetUserOncallSchedule gets a user's on-call schedule
+func (c *APIClient) GetUserOncallSchedule(username string, daysForward, daysSkip int) ([]TeamOncallSchedule, error) {
+	path := fmt.Sprintf("/api-public/v2/user/%s/oncall/schedule?daysForward=%d&daysSkip=%d", username, daysForward, daysSkip)
+	respBody, statusCode, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if statusCode == 404 {
+		return nil, nil
+	}
+
+	if statusCode != 200 {
+		return nil, fmt.Errorf("API error (%d): %s", statusCode, string(respBody))
+	}
+
+	var response struct {
+		TeamSchedules []TeamOncallSchedule `json:"teamSchedules"`
+	}
+	if err := json.Unmarshal(respBody, &response); err != nil {
+		return nil, err
+	}
+
+	return response.TeamSchedules, nil
+}
+
+// GetTeamRotations gets a team's rotations
+func (c *APIClient) GetTeamRotations(teamID string) ([]Rotation, error) {
+	path := fmt.Sprintf("/api-public/v2/team/%s/rotations", teamID)
+	respBody, statusCode, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if statusCode == 404 {
+		return nil, nil
+	}
+
+	if statusCode != 200 {
+		return nil, fmt.Errorf("API error (%d): %s", statusCode, string(respBody))
+	}
+
+	var response struct {
+		Rotations []Rotation `json:"rotations"`
+	}
+	if err := json.Unmarshal(respBody, &response); err != nil {
+		return nil, err
+	}
+
+	return response.Rotations, nil
+}
+
+// GetTeamAdmins gets a team's admins
+func (c *APIClient) GetTeamAdmins(teamID string) ([]TeamAdmin, error) {
+	path := fmt.Sprintf("/api-public/v1/team/%s/admins", teamID)
+	respBody, statusCode, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if statusCode == 404 {
+		return nil, nil
+	}
+
+	if statusCode != 200 {
+		return nil, fmt.Errorf("API error (%d): %s", statusCode, string(respBody))
+	}
+
+	var response struct {
+		TeamAdmins []TeamAdmin `json:"teamAdmins"`
+	}
+	if err := json.Unmarshal(respBody, &response); err != nil {
+		return nil, err
+	}
+
+	return response.TeamAdmins, nil
+}
+
+// GetRoutingKeys gets all routing keys
+func (c *APIClient) GetRoutingKeys() ([]RoutingKeyInfo, error) {
+	path := "/api-public/v1/org/routing-keys"
+	respBody, statusCode, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if statusCode != 200 {
+		return nil, fmt.Errorf("API error (%d): %s", statusCode, string(respBody))
+	}
+
+	var response struct {
+		RoutingKeys []RoutingKeyInfo `json:"routingKeys"`
+	}
+	if err := json.Unmarshal(respBody, &response); err != nil {
+		return nil, err
+	}
+
+	return response.RoutingKeys, nil
+}
+
+// GetUsers gets all users, optionally filtered by email
+func (c *APIClient) GetUsers(email string) ([]UserInfo, error) {
+	path := "/api-public/v2/user"
+	if email != "" {
+		path = fmt.Sprintf("%s?email=%s", path, email)
+	}
+
+	respBody, statusCode, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if statusCode != 200 {
+		return nil, fmt.Errorf("API error (%d): %s", statusCode, string(respBody))
+	}
+
+	var response struct {
+		Users []UserInfo `json:"users"`
+	}
+	if err := json.Unmarshal(respBody, &response); err != nil {
+		return nil, err
+	}
+
+	return response.Users, nil
+}
+
+// GetUserDevices gets a user's devices
+func (c *APIClient) GetUserDevices(username string) ([]UserDevice, error) {
+	path := fmt.Sprintf("/api-public/v1/user/%s/contact-methods/devices", username)
+	respBody, statusCode, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if statusCode == 404 {
+		return nil, nil
+	}
+
+	if statusCode != 200 {
+		return nil, fmt.Errorf("API error (%d): %s", statusCode, string(respBody))
+	}
+
+	// Try to unmarshal as a direct array first
+	var devices []UserDevice
+	if err := json.Unmarshal(respBody, &devices); err != nil {
+		// If that fails, try wrapped response
+		var response struct {
+			Devices []UserDevice `json:"devices"`
+		}
+		if err := json.Unmarshal(respBody, &response); err != nil {
+			return nil, fmt.Errorf("failed to parse devices response: %s", string(respBody))
+		}
+		return response.Devices, nil
+	}
+
+	return devices, nil
+}
