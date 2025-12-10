@@ -85,22 +85,22 @@ func resourceTeamRead(ctx context.Context, d *schema.ResourceData, m interface{}
 func resourceTeamUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	config := m.(Config)
 
-	team := &victorops.Team{
-		Name: d.Get("name").(string),
-	}
-
 	// Wait for rate limiter before making API request
 	if err := WaitForRateLimitWithContext(ctx); err != nil {
 		return diag.FromErr(err)
 	}
 
-	newTeam, details, err := config.VictorOpsClient.UpdateTeam(team)
-	if err != nil {
-		return diag.FromErr(err)
+	// Use our custom APIClient.UpdateTeam which correctly uses the team slug in the URL path
+	// The go-victorops library has a bug where it uses team.Name for the URL path instead of the slug
+	apiClient := NewAPIClient(config.BaseURL, config.APIId, config.APIKey)
+
+	updateReq := &TeamUpdateRequest{
+		Name: d.Get("name").(string),
 	}
 
-	if details.StatusCode != 200 {
-		return diag.Errorf("failed to update team %s (%d): %s", d.Id(), details.StatusCode, details.ResponseBody)
+	newTeam, err := apiClient.UpdateTeam(d.Id(), updateReq)
+	if err != nil {
+		return diag.Errorf("failed to update team %s: %s", d.Id(), err)
 	}
 
 	if err := d.Set("name", newTeam.Name); err != nil {

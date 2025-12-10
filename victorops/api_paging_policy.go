@@ -35,7 +35,7 @@ type PagingPolicyRule struct {
 
 // PagingPolicyStepCreateRequest is the request body for creating a step (spec lines 5411-5419)
 type PagingPolicyStepCreateRequest struct {
-	Timeout int                         `json:"timeout"`
+	Timeout int                          `json:"timeout"`
 	Rules   []PagingPolicyRuleAddPayload `json:"rules,omitempty"`
 }
 
