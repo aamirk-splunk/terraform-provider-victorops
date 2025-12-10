@@ -6,7 +6,8 @@ import (
 	"strconv"
 )
 
-// AlertRule represents an alert rule in VictorOps
+// AlertRule represents an alert rule in VictorOps (API response)
+// Note: API response uses "routeKey", while request uses "routingKey"
 type AlertRule struct {
 	ID              int               `json:"id,omitempty"`
 	AlertField      string            `json:"alertField,omitempty"`
@@ -17,8 +18,7 @@ type AlertRule struct {
 	LastUpdated     int64             `json:"lastUpdated,omitempty"`
 	LastUpdatedBy   string            `json:"lastUpdatedBy,omitempty"`
 	Notes           string            `json:"notes,omitempty"`
-	RouteKey        string            `json:"routeKey,omitempty"`
-	RoutingKey      string            `json:"routingKey,omitempty"`
+	RouteKey        string            `json:"routeKey,omitempty"` // API response field (not routingKey)
 	Annotations     []AlertAnnotation `json:"annotations,omitempty"`
 }
 

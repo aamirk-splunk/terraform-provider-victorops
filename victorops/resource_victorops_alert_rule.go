@@ -175,14 +175,10 @@ func resourceAlertRuleRead(ctx context.Context, d *schema.ResourceData, m interf
 	if err := d.Set("match_type", rule.MatchType); err != nil {
 		return diag.FromErr(err)
 	}
-	// Note: API doesn't return routing_key in GET response, so we preserve the configured value
-	// Only update if the API actually returns a value (which it currently doesn't)
-	routingKey := rule.RouteKey
-	if routingKey == "" {
-		routingKey = rule.RoutingKey
-	}
-	if routingKey != "" {
-		if err := d.Set("routing_key", routingKey); err != nil {
+	// Note: API response uses "routeKey" field (not "routingKey" which is used in requests)
+	// Only update if the API returns a value; otherwise preserve configured value
+	if rule.RouteKey != "" {
+		if err := d.Set("routing_key", rule.RouteKey); err != nil {
 			return diag.FromErr(err)
 		}
 	}
