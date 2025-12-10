@@ -5,32 +5,62 @@ import (
 	"fmt"
 )
 
-// TeamOncallSchedule represents a team's on-call schedule
+// TeamOncallSchedule represents a team's on-call schedule (spec lines 4707-4715)
 type TeamOncallSchedule struct {
-	Team      TeamInfo         `json:"team,omitempty"`
-	Schedules []OncallSchedule `json:"schedules,omitempty"`
+	Team      *TeamInfo        `json:"team,omitempty"` // Object, not string
+	Schedules []PolicySchedule `json:"schedules,omitempty"`
 }
 
-// TeamInfo represents team information in schedule responses
+// TeamInfo represents team information in schedule responses (spec lines 4608-4622)
 type TeamInfo struct {
 	Name string `json:"name,omitempty"`
 	Slug string `json:"slug,omitempty"`
 }
 
-// OncallSchedule represents an on-call schedule entry
-type OncallSchedule struct {
-	OncallUser string         `json:"oncallUser,omitempty"`
-	OncallType string         `json:"oncallType,omitempty"`
-	Rolls      []ScheduleRoll `json:"rolls,omitempty"`
+// User represents a user object (spec lines 4602-4607)
+type User struct {
+	Username string `json:"username,omitempty"`
 }
 
-// ScheduleRoll represents a roll in the schedule
-type ScheduleRoll struct {
-	Start      int64  `json:"start,omitempty"`
-	End        int64  `json:"end,omitempty"`
-	OnCallUser string `json:"onCallUser,omitempty"`
-	OnCallType string `json:"onCallType,omitempty"`
+// EscalationPolicySummary represents policy summary (spec lines 5215-5235)
+type EscalationPolicySummary struct {
+	Name    string `json:"name,omitempty"`
+	Slug    string `json:"slug,omitempty"`
+	SelfURL string `json:"_selfUrl,omitempty"`
+}
+
+// OnCallRoll represents a roll in the schedule (spec lines 4637-4653)
+type OnCallRoll struct {
+	Start      string `json:"start,omitempty"`      // ISO8601 string
+	End        string `json:"end,omitempty"`        // ISO8601 string
+	OnCallUser *User  `json:"onCallUser,omitempty"` // Object, not string
 	IsRoll     bool   `json:"isRoll,omitempty"`
+}
+
+// OnCallOverride represents an override (spec lines 4655-4667)
+type OnCallOverride struct {
+	OrigOnCallUser     *User  `json:"origOnCallUser,omitempty"`
+	OverrideOnCallUser *User  `json:"overrideOnCallUser,omitempty"`
+	Start              string `json:"start,omitempty"` // ISO8601
+	End                string `json:"end,omitempty"`   // ISO8601
+}
+
+// OnCallEntry represents an on-call entry (spec lines 4669-4691)
+type OnCallEntry struct {
+	OnCallUser         *User        `json:"onCallUser,omitempty"` // Object, not string
+	OverrideOnCallUser *User        `json:"overrideOnCallUser,omitempty"`
+	OnCallType         string       `json:"onCallType,omitempty"`
+	RotationName       string       `json:"rotationName,omitempty"`
+	ShiftName          string       `json:"shiftName,omitempty"`
+	ShiftRoll          string       `json:"shiftRoll,omitempty"` // ISO8601
+	Rolls              []OnCallRoll `json:"rolls,omitempty"`
+}
+
+// PolicySchedule represents a policy schedule (spec lines 4693-4705)
+type PolicySchedule struct {
+	Policy    *EscalationPolicySummary `json:"policy,omitempty"`
+	Schedule  []OnCallEntry            `json:"schedule,omitempty"`
+	Overrides []OnCallOverride         `json:"overrides,omitempty"`
 }
 
 // Rotation represents a rotation in a team (v2 API)

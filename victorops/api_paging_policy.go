@@ -11,31 +11,44 @@ type PagingPolicy struct {
 	SelfURL string             `json:"_selfUrl,omitempty"`
 }
 
-// PagingPolicyStep represents a step in a paging policy
+// Contact represents a contact for paging (spec lines 5327-5333)
+type Contact struct {
+	ID   int    `json:"id,omitempty"`
+	Type string `json:"type,omitempty"` // "email" or "phone"
+}
+
+// PagingPolicyStep represents a step in a paging policy (spec lines 5353-5364)
 type PagingPolicyStep struct {
-	Step    int                `json:"step,omitempty"`
+	Index   int                `json:"index,omitempty"` // Changed from "step"
 	Timeout int                `json:"timeout,omitempty"`
 	Rules   []PagingPolicyRule `json:"rules,omitempty"`
 	SelfURL string             `json:"_selfUrl,omitempty"`
 }
 
-// PagingPolicyRule represents a rule in a paging policy step
+// PagingPolicyRule represents a rule in a paging policy step (spec lines 5335-5343)
 type PagingPolicyRule struct {
-	Rule      int    `json:"rule,omitempty"`
-	Type      string `json:"type,omitempty"`
-	ContactID int    `json:"contactId,omitempty"`
-	SelfURL   string `json:"_selfUrl,omitempty"`
+	Index   int      `json:"index,omitempty"` // Changed from "rule"
+	Type    string   `json:"type,omitempty"`
+	Contact *Contact `json:"contact,omitempty"` // Changed from ContactID
+	SelfURL string   `json:"_selfUrl,omitempty"`
 }
 
-// PagingPolicyStepCreateRequest is the request body for creating a step
+// PagingPolicyStepCreateRequest is the request body for creating a step (spec lines 5411-5419)
 type PagingPolicyStepCreateRequest struct {
-	Timeout int `json:"timeout"`
+	Timeout int                         `json:"timeout"`
+	Rules   []PagingPolicyRuleAddPayload `json:"rules,omitempty"`
 }
 
-// PagingPolicyRuleCreateRequest is the request body for creating a rule
+// PagingPolicyRuleAddPayload represents a rule to add (spec lines 5345-5351)
+type PagingPolicyRuleAddPayload struct {
+	Type    string   `json:"type"`
+	Contact *Contact `json:"contact,omitempty"`
+}
+
+// PagingPolicyRuleCreateRequest is the request body for creating a rule (spec lines 5421-5427)
 type PagingPolicyRuleCreateRequest struct {
-	Type      string `json:"type"`
-	ContactID int    `json:"contactId,omitempty"`
+	Type    string   `json:"type"`
+	Contact *Contact `json:"contact,omitempty"`
 }
 
 // GetUserPagingPolicy gets a user's paging policy

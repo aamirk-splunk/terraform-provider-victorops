@@ -41,8 +41,8 @@ will be removed when the policy is applied.`,
 						"timeout": {
 							Type:         schema.TypeInt,
 							Required:     true,
-							ValidateFunc: validation.IntAtLeast(0),
-							Description:  "The timeout in minutes before escalating to the next step. 0 means immediate.",
+							ValidateFunc: validation.IntInSlice([]int{0, 1, 5, 10, 15, 20, 25, 30, 45, 60}),
+							Description:  "The timeout in minutes before escalating to the next step. Valid values: 0, 1, 5, 10, 15, 20, 25, 30, 45, 60.",
 						},
 						"rule": {
 							Type:        schema.TypeList,
@@ -57,10 +57,26 @@ will be removed when the policy is applied.`,
 										ValidateFunc: validation.StringInSlice([]string{"push", "email", "phone", "sms"}, false),
 										Description:  "The type of notification: 'push', 'email', 'phone', or 'sms'.",
 									},
-									"contact_id": {
-										Type:        schema.TypeInt,
+									"contact": {
+										Type:        schema.TypeList,
 										Optional:    true,
-										Description: "The contact ID for this rule (required for email, phone, sms types).",
+										MaxItems:    1,
+										Description: "The contact for this rule (required for email, phone, sms types).",
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"id": {
+													Type:        schema.TypeInt,
+													Required:    true,
+													Description: "The contact ID.",
+												},
+												"type": {
+													Type:         schema.TypeString,
+													Required:     true,
+													ValidateFunc: validation.StringInSlice([]string{"email", "phone"}, false),
+													Description:  "The contact type: 'email' or 'phone'.",
+												},
+											},
+										},
 									},
 								},
 							},
@@ -83,10 +99,10 @@ func resourceUserPagingPolicyCreate(ctx context.Context, d *schema.ResourceData,
 		return diag.FromErr(err)
 	}
 	if existingPolicy != nil {
-		// Delete existing steps in reverse order
+		// Delete existing steps in reverse order using Index field
 		for i := len(existingPolicy.Steps) - 1; i >= 0; i-- {
-			if err := apiClient.DeletePagingPolicyStep(username, existingPolicy.Steps[i].Step); err != nil {
-				return diag.FromErr(fmt.Errorf("failed to delete existing step %d: %w", existingPolicy.Steps[i].Step, err))
+			if err := apiClient.DeletePagingPolicyStep(username, existingPolicy.Steps[i].Index); err != nil {
+				return diag.FromErr(fmt.Errorf("failed to delete existing step %d: %w", existingPolicy.Steps[i].Index, err))
 			}
 		}
 	}
@@ -109,11 +125,19 @@ func resourceUserPagingPolicyCreate(ctx context.Context, d *schema.ResourceData,
 		for _, r := range rules {
 			ruleData := r.(map[string]interface{})
 			ruleReq := &PagingPolicyRuleCreateRequest{
-				Type:      ruleData["type"].(string),
-				ContactID: ruleData["contact_id"].(int),
+				Type: ruleData["type"].(string),
 			}
 
-			_, err := apiClient.CreatePagingPolicyRule(username, step.Step, ruleReq)
+			// Handle contact block
+			if contactList, ok := ruleData["contact"].([]interface{}); ok && len(contactList) > 0 {
+				contactData := contactList[0].(map[string]interface{})
+				ruleReq.Contact = &Contact{
+					ID:   contactData["id"].(int),
+					Type: contactData["type"].(string),
+				}
+			}
+
+			_, err := apiClient.CreatePagingPolicyRule(username, step.Index, ruleReq)
 			if err != nil {
 				return diag.FromErr(fmt.Errorf("failed to create rule: %w", err))
 			}
@@ -149,10 +173,23 @@ func resourceUserPagingPolicyRead(ctx context.Context, d *schema.ResourceData, m
 	for i, s := range policy.Steps {
 		rules := make([]map[string]interface{}, len(s.Rules))
 		for j, r := range s.Rules {
-			rules[j] = map[string]interface{}{
-				"type":       r.Type,
-				"contact_id": r.ContactID,
+			ruleMap := map[string]interface{}{
+				"type": r.Type,
 			}
+
+			// Handle contact object
+			if r.Contact != nil {
+				ruleMap["contact"] = []map[string]interface{}{
+					{
+						"id":   r.Contact.ID,
+						"type": r.Contact.Type,
+					},
+				}
+			} else {
+				ruleMap["contact"] = []map[string]interface{}{}
+			}
+
+			rules[j] = ruleMap
 		}
 		steps[i] = map[string]interface{}{
 			"timeout": s.Timeout,
@@ -185,10 +222,10 @@ func resourceUserPagingPolicyDelete(ctx context.Context, d *schema.ResourceData,
 	}
 
 	if policy != nil {
-		// Delete all steps in reverse order
+		// Delete all steps in reverse order using Index field
 		for i := len(policy.Steps) - 1; i >= 0; i-- {
-			if err := apiClient.DeletePagingPolicyStep(username, policy.Steps[i].Step); err != nil {
-				return diag.FromErr(fmt.Errorf("failed to delete step %d: %w", policy.Steps[i].Step, err))
+			if err := apiClient.DeletePagingPolicyStep(username, policy.Steps[i].Index); err != nil {
+				return diag.FromErr(fmt.Errorf("failed to delete step %d: %w", policy.Steps[i].Index, err))
 			}
 		}
 	}

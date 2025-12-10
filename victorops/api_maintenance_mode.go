@@ -21,9 +21,10 @@ type ActiveMaintenanceMode struct {
 	Purpose    string                  `json:"purpose,omitempty"`
 }
 
-// MaintenanceModeTarget represents a target for maintenance mode
+// MaintenanceModeTarget represents a target for maintenance mode (spec lines 5508-5519)
 type MaintenanceModeTarget struct {
-	RoutingKey string `json:"routingKey,omitempty"`
+	Type  string   `json:"type,omitempty"`  // "RoutingKeys"
+	Names []string `json:"names,omitempty"` // routing key names
 }
 
 // StartMaintenanceModeRequest is the request body for starting maintenance mode

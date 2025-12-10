@@ -99,22 +99,26 @@ func resourceMaintenanceModeCreate(ctx context.Context, d *schema.ResourceData, 
 			newInstance = inst
 			break
 		}
-		if !isGlobal && len(inst.Targets) == len(routingKeys) {
-			// Check if targets match
+		if !isGlobal {
+			// Check if targets match by collecting all names from targets
 			matched := true
 			targetMap := make(map[string]bool)
 			for _, t := range inst.Targets {
-				targetMap[t.RoutingKey] = true
-			}
-			for _, rk := range routingKeys {
-				if !targetMap[rk] {
-					matched = false
-					break
+				for _, name := range t.Names {
+					targetMap[name] = true
 				}
 			}
-			if matched {
-				newInstance = inst
-				break
+			if len(targetMap) == len(routingKeys) {
+				for _, rk := range routingKeys {
+					if !targetMap[rk] {
+						matched = false
+						break
+					}
+				}
+				if matched {
+					newInstance = inst
+					break
+				}
 			}
 		}
 	}
@@ -172,9 +176,9 @@ func resourceMaintenanceModeRead(ctx context.Context, d *schema.ResourceData, m 
 
 	// Map routing keys from targets (only if not global)
 	if !instance.IsGlobal && len(instance.Targets) > 0 {
-		routingKeys := make([]string, len(instance.Targets))
-		for i, t := range instance.Targets {
-			routingKeys[i] = t.RoutingKey
+		var routingKeys []string
+		for _, t := range instance.Targets {
+			routingKeys = append(routingKeys, t.Names...)
 		}
 		if err := d.Set("routing_keys", routingKeys); err != nil {
 			return diag.FromErr(err)

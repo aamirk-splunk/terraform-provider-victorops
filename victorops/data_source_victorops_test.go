@@ -201,7 +201,7 @@ func TestAccDataSourceTeamOncallSchedule(t *testing.T) {
 			{
 				Config: testAccDataSourceTeamOncallScheduleConfig(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet("data.victorops_team_oncall_schedule.test", "schedule.#"),
+					resource.TestCheckResourceAttrSet("data.victorops_team_oncall_schedule.test", "schedules.#"),
 				),
 			},
 		},
