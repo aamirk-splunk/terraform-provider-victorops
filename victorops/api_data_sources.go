@@ -33,18 +33,69 @@ type ScheduleRoll struct {
 	IsRoll     bool   `json:"isRoll,omitempty"`
 }
 
-// Rotation represents a rotation in a team
+// Rotation represents a rotation in a team (v2 API)
 type Rotation struct {
-	Label        string          `json:"label,omitempty"`
-	TotalMembers int             `json:"totalMembers,omitempty"`
-	Shifts       []RotationShift `json:"shifts,omitempty"`
+	Label                  string         `json:"label,omitempty"`
+	TotalMembersInRotation int            `json:"totalMembersInRotation,omitempty"`
+	Shifts                 []ShiftDetails `json:"shifts,omitempty"`
 }
 
-// RotationShift represents a shift in a rotation
-type RotationShift struct {
-	Label    string   `json:"label,omitempty"`
-	Duration int      `json:"duration,omitempty"`
-	Members  []string `json:"members,omitempty"`
+// ShiftDetails represents details of a shift
+type ShiftDetails struct {
+	Label        string         `json:"label,omitempty"`
+	Duration     int            `json:"duration,omitempty"`
+	Current      *OnCallPeriod  `json:"current,omitempty"`
+	Next         *OnCallPeriod  `json:"next,omitempty"`
+	Periods      []OnCallPeriod `json:"periods,omitempty"`
+	ShiftMembers []ShiftMember  `json:"shiftMembers,omitempty"`
+	ShiftType    string         `json:"shifttype,omitempty"`
+	Start        string         `json:"start,omitempty"`
+	Timezone     string         `json:"timezone,omitempty"`
+	Mask         *RotationMask  `json:"mask,omitempty"`
+	Mask2        *RotationMask  `json:"mask2,omitempty"`
+	Mask3        *RotationMask  `json:"mask3,omitempty"`
+}
+
+// ShiftMember represents a member in a shift
+type ShiftMember struct {
+	Slug     string `json:"slug,omitempty"`
+	Username string `json:"username,omitempty"`
+}
+
+// OnCallPeriod represents an on-call time period
+type OnCallPeriod struct {
+	Start    string `json:"start,omitempty"`
+	End      string `json:"end,omitempty"`
+	Username string `json:"username,omitempty"`
+}
+
+// RotationMask defines days and time ranges for on-call periods
+type RotationMask struct {
+	Day  *MaskDays       `json:"day,omitempty"`
+	Time []MaskTimeRange `json:"time,omitempty"`
+}
+
+// MaskDays represents which days of the week the rotation is active
+type MaskDays struct {
+	Su bool `json:"su,omitempty"`
+	M  bool `json:"m,omitempty"`
+	T  bool `json:"t,omitempty"`
+	W  bool `json:"w,omitempty"`
+	Th bool `json:"th,omitempty"`
+	F  bool `json:"f,omitempty"`
+	Sa bool `json:"sa,omitempty"`
+}
+
+// MaskTimeRange represents a time range within a day
+type MaskTimeRange struct {
+	Start *MaskTime `json:"start,omitempty"`
+	End   *MaskTime `json:"end,omitempty"`
+}
+
+// MaskTime represents hour and minute
+type MaskTime struct {
+	Hour   int `json:"hour,omitempty"`
+	Minute int `json:"minute,omitempty"`
 }
 
 // TeamAdmin represents a team admin
